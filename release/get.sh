@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 OS=`uname -s`
 PROC=`uname -m`
