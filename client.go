@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
+	"syscall"
 	"path/filepath"
 	"strings"
 	"time"
@@ -417,9 +419,23 @@ func ParseClientFlags(args []string) string {
 	return url
 }
 
+func ListenForSignals() {
+        sigs := make(chan os.Signal, 1)
+        signal.Notify(sigs,
+                syscall.SIGHUP,
+                syscall.SIGINT,
+                syscall.SIGTERM,
+                syscall.SIGQUIT)
+        go func() {
+                _ = <-sigs
+                fmt.Println("Received signal, exiting.")
+                os.Exit(0)
+        }()
+}
+
 func RunClient(url string, id string) {
 	rootPath, _ = filepath.Abs(rootPath)
-
+        ListenForSignals()
 	socketUrl := fmt.Sprintf("%s/clientsocket", url)
 	var ws *websocket.Conn
 	var timeout time.Duration = 1e8

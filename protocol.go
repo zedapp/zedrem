@@ -77,4 +77,3 @@ func IntToBytes(n int) []byte {
 func BytesToInt(buf []byte) int {
 	return int(buf[0]) * 256 + int(buf[1])
 }
-
