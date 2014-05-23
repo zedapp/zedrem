@@ -8,7 +8,6 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"mime"
@@ -257,7 +256,7 @@ func handlePut(path string, requestChannel chan []byte, responseChannel chan []b
 	os.MkdirAll(dir, 0700)
 
 	// To avoid corrupted files, we'll write to a temp path first
-	tempPath := os.TempDir() + "/" + uuid.New()
+	tempPath := dir + "/.zedtmp." + uuid.New()
 	f, err := os.Create(tempPath)
 	if err != nil {
 		dropUntilDelimiter(requestChannel)
@@ -274,6 +273,7 @@ func handlePut(path string, requestChannel chan []byte, responseChannel chan []b
 			return NewHttpError(500, "Could not write to file")
 		}
 	}
+	f.Sync()
 	f.Close()
 
 	var mode os.FileMode = 0600
@@ -282,23 +282,15 @@ func handlePut(path string, requestChannel chan []byte, responseChannel chan []b
 		mode = stat.Mode()
 	}
 
-	// Copy temp file to new file
-	srcFile, err := os.OpenFile(tempPath, os.O_RDONLY, 0666)
-	if err != nil {
-		return NewHttpError(500, "Could copy temp file to file: could not open source file")
-	}
+        if err := os.Chmod(tempPath, mode); err != nil {
+                return NewHttpError(500, "unable to chmod tmpfile: " + err.Error())
+        }
 
-	dstFile, err := os.OpenFile(safePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
-	if err != nil {
-		return NewHttpError(500, "Could copy temp file to file: could not open dest file")
-	}
-	_, err = io.Copy(dstFile, srcFile)
-	if err != nil {
-		return NewHttpError(500, "Could copy temp file to file: copy error")
-	}
-	srcFile.Close()
-	dstFile.Close()
-	os.Remove(tempPath)
+        // Rename the temp file to a the real file. This is done "atomically",
+        // so that even if something goes weird, we'll either have an old or new version.
+        if err := os.Rename(tempPath, safePath); err != nil {
+                return NewHttpError(500, "Unable to replace old version: " + err.Error())
+        }
 
 	stat, _ = os.Stat(safePath)
 	responseChannel <- statusCodeBuffer(200)
