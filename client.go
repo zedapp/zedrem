@@ -330,9 +330,9 @@ func handleDelete(path string, requestChannel chan []byte, responseChannel chan 
 func walkDirectory(responseChannel chan []byte, root string, path string) {
 	files, _ := ioutil.ReadDir(filepath.Join(root, path))
 	for _, f := range files {
-		if f.Name()[0] == '.' {
-			continue
-		}
+// 		if f.Name()[0] == '.' {
+// 			continue
+// 		}
 		if f.IsDir() {
 			walkDirectory(responseChannel, root, filepath.Join(path, f.Name()))
 		} else {
