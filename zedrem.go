@@ -27,10 +27,12 @@ func main() {
 	case "help":
 		fmt.Println(`zedrem runs in one of two possible modes: client or server:
 
-Usage: zedrem [-u url] <dir>
+Usage: zedrem [-u url] [-key userKey] <dir>
        Launches a Zed client and attaches to a Zed server exposing
        directory <dir> (or current directory if omitted). Default URL is
-       ws://server.zedapp.org
+       wss://renite.zedapp.org:443
+       If a -key flag is passed that matches the userKey set in your Zed
+       configuration, a window will open automatically.
 
 Usage: zedrem --server [-h ip] [-p port] [--sslcrt file.crt] [--sslkey file.key]
        Launches a Zed server, binding to IP <ip> on port <port>.

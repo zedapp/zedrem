@@ -22,7 +22,7 @@ type Config struct {
 
 func ParseConfig() Config {
     var config Config
-    config.Client.Url = "ws://server.zedapp.org:80"
+    config.Client.Url = "wss://server.zedapp.org:443"
     config.Server.Ip = "0.0.0.0"
     config.Server.Port = 7337
 

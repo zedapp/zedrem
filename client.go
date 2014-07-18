@@ -460,8 +460,12 @@ func RunClient(url string, id string, userKey string) {
 	connectUrl = strings.Replace(connectUrl, "wss://", "https://", 1)
 	multiplexer := NewRPCMultiplexer(ws, handleRequest)
 
-	fmt.Print("In the Zed Chrome application copy and paste following URL to edit:\n\n")
-	fmt.Printf("  %s/fs/%s\n\n", connectUrl, id)
+        if userKey == "" {
+        	fmt.Print("In the Zed application copy and paste following URL to edit:\n\n")
+        	fmt.Printf("  %s/fs/%s\n\n", connectUrl, id)
+        } else {
+                fmt.Println("A Zed window should now open. If not, make sure Zed is running and configured with the correct userKey.")
+        }
 	fmt.Println("Press Ctrl-c to quit.")
 	err = multiplexer.Multiplex()
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 var editorClients map[string]*EditorClient = make(map[string]*EditorClient)
 
 type EditorClient struct {
+        id string
         writeChannels []chan string
         pendingEditIds []string
 }
@@ -18,6 +19,7 @@ func GetEditorClientChannel(uuid string) *EditorClient {
         client, ok := editorClients[uuid]
         if !ok {
                 client = &EditorClient {
+                        id: uuid,
                         writeChannels: make([]chan string, 0),
                         pendingEditIds: make([]string, 0),
                 }
@@ -52,10 +54,14 @@ func (client *EditorClient) Send(editId string) {
 func (client *EditorClient) DisconnectChannel(ch chan string) {
         for i, curCh := range client.writeChannels {
                 if curCh == ch {
-                        fmt.Println("Removed chan from list")
                         client.writeChannels = append(client.writeChannels[:i], client.writeChannels[i+1:]...)
                         close(ch)
                 }
+        }
+
+        if len(client.writeChannels) == 0 {
+                // Delete client object altogether
+                delete(editorClients, client.id)
         }
 }
 
@@ -104,10 +110,8 @@ func editorSocketServer(ws *websocket.Conn) {
         for {
                 url, request_ok := <-clientChan
                 if !request_ok {
-                        fmt.Println("Channel closed, bye!")
                         return
                 }
-                fmt.Println("Now sending URL", url)
                 _, err := ws.Write([]byte(url))
                 if err != nil {
                         fmt.Println("Got error", err)

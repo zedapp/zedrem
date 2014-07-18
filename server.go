@@ -187,7 +187,7 @@ func socketServer(ws *websocket.Conn) {
 		fmt.Println("Could not parse welcome message.")
 		return
 	}
-	fmt.Println("Client", hello.UUID, "connected, with userKey", hello.UserKey)
+	fmt.Println("Client", hello.UUID, "connected")
 
 	client := NewClient(hello.UUID)
 
@@ -247,7 +247,11 @@ func PrintStats() {
 		for _ = range clients {
 			clientCount++
 		}
-		fmt.Printf("Clients: %d Goroutines: %d Memory: %dK\n", clientCount, runtime.NumGoroutine(), memStats.Alloc / 1024)
+		editorClientCount := 0
+		for _ = range editorClients {
+			editorClientCount++
+		}
+		fmt.Printf("Editor Clients %d Clients: %d Goroutines: %d Memory: %dK\n", editorClientCount, clientCount, runtime.NumGoroutine(), memStats.Alloc / 1024)
 		time.Sleep(10e9) // Every 10 seconds
 	}
 }
