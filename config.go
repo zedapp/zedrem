@@ -9,6 +9,7 @@ import (
 type Config struct {
     Client struct {
         Url string
+        UserKey string
     }
 
     Server struct {

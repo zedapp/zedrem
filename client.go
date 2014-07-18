@@ -330,9 +330,6 @@ func handleDelete(path string, requestChannel chan []byte, responseChannel chan 
 func walkDirectory(responseChannel chan []byte, root string, path string) {
 	files, _ := ioutil.ReadDir(filepath.Join(root, path))
 	for _, f := range files {
-// 		if f.Name()[0] == '.' {
-// 			continue
-// 		}
 		if f.IsDir() {
 			walkDirectory(responseChannel, root, filepath.Join(path, f.Name()))
 		} else {
@@ -391,13 +388,15 @@ func handlePost(path string, requestChannel chan []byte, responseChannel chan []
 }
 
 // Side-effect: writes to rootPath
-func ParseClientFlags(args []string) string {
+func ParseClientFlags(args []string) (string, string) {
 	config := ParseConfig()
 
 	flagSet := flag.NewFlagSet("zedrem", flag.ExitOnError)
 	var url string
+	var userKey string
 	var stats bool
 	flagSet.StringVar(&url, "u", config.Client.Url, "URL to connect to")
+	flagSet.StringVar(&userKey, "key", config.Client.UserKey, "User key to use")
 	flagSet.BoolVar(&stats, "stats", false, "Whether to print go-routine count and memory usage stats periodically.")
 	flagSet.Parse(args)
 	if stats {
@@ -408,7 +407,7 @@ func ParseClientFlags(args []string) string {
 	} else {
 		rootPath = args[len(args)-1]
 	}
-	return url
+	return url, userKey
 }
 
 func ListenForSignals() {
@@ -425,7 +424,7 @@ func ListenForSignals() {
         }()
 }
 
-func RunClient(url string, id string) {
+func RunClient(url string, id string, userKey string) {
 	rootPath, _ = filepath.Abs(rootPath)
         ListenForSignals()
 	socketUrl := fmt.Sprintf("%s/clientsocket", url)
@@ -451,7 +450,7 @@ func RunClient(url string, id string) {
 		}
 	}
 
-	buffer, _ := json.Marshal(HelloMessage{"0.1", id})
+	buffer, _ := json.Marshal(HelloMessage{"0.1", id, userKey})
 
 	if _, err := ws.Write(buffer); err != nil {
 		log.Fatal(err)
@@ -467,6 +466,6 @@ func RunClient(url string, id string) {
 	err = multiplexer.Multiplex()
 	if err != nil {
 		// TODO do this in a cleaner way (reconnect, that is)
-		RunClient(url, id)
+		RunClient(url, id, userKey)
 	}
 }

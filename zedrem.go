@@ -21,9 +21,9 @@ func main() {
 		ip, port, sslCrt, sslKey := ParseServerFlags(os.Args[2:])
 		RunServer(ip, port, sslCrt, sslKey, false)
 	case "client":
-		url := ParseClientFlags(os.Args[1:])
+		url, userKey := ParseClientFlags(os.Args[1:])
 		id := strings.Replace(uuid.New(), "-", "", -1)
-		RunClient(url, id)
+		RunClient(url, id, userKey)
 	case "help":
 		fmt.Println(`zedrem runs in one of two possible modes: client or server:
 

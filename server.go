@@ -187,7 +187,7 @@ func socketServer(ws *websocket.Conn) {
 		fmt.Println("Could not parse welcome message.")
 		return
 	}
-	fmt.Println("Client", hello.UUID, "connected")
+	fmt.Println("Client", hello.UUID, "connected, with userKey", hello.UserKey)
 
 	client := NewClient(hello.UUID)
 
@@ -220,6 +220,10 @@ func socketServer(ws *websocket.Conn) {
 			req.ch <- buffer
 		}
 	}()
+
+	if hello.UserKey != "" {
+                GetEditorClientChannel(hello.UserKey).Send(hello.UUID)
+        }
 
 
 	for {
@@ -268,6 +272,7 @@ func ParseServerFlags(args []string) (ip string, port int, sslCrt string, sslKey
 func RunServer(ip string, port int, sslCrt string, sslKey string, withSignaling bool) {
 	http.Handle("/fs/", http.StripPrefix("/fs/", &WebFSHandler{}))
 	http.Handle("/clientsocket", websocket.Handler(socketServer))
+	http.Handle("/editorsocket", websocket.Handler(editorSocketServer))
 	if sslCrt != "" {
 		fmt.Printf("Zedrem server now running on wss://%s:%d\n", ip, port)
 		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf("%s:%d", ip, port), sslCrt, sslKey, nil))

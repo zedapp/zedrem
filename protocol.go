@@ -8,6 +8,7 @@ import (
 type HelloMessage struct {
 	Version string
 	UUID string
+	UserKey string
 }
 
 const DELIMITER = "11~~~~~!!END!!~~~~~11"
