@@ -97,7 +97,7 @@ func editorSocketServer(ws *websocket.Conn) {
 
         go func() {
                 for {
-                        buf := make([]byte, 1)
+                        buf := make([]byte, 100)
                         _, err := ws.Read(buf)
                         if err != nil {
                                 closeSocket()
