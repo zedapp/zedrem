@@ -8,6 +8,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"mime"
@@ -276,21 +277,38 @@ func handlePut(path string, requestChannel chan []byte, responseChannel chan []b
 	f.Sync()
 	f.Close()
 
+        // Get existing file permissions
 	var mode os.FileMode = 0600
 	stat, err := os.Stat(safePath)
 	if err == nil {
 		mode = stat.Mode()
 	}
+	// And then copy it over again
 
-        if err := os.Chmod(tempPath, mode); err != nil {
-                return NewHttpError(500, "unable to chmod tmpfile: " + err.Error())
+        f, err = os.Open(tempPath)
+        if err != nil {
+                return NewHttpError(500, fmt.Sprintf("Could not read temporary file for copy: %s", tempPath))
+        }
+	fout, err := os.OpenFile(safePath, os.O_WRONLY | os.O_TRUNC, mode)
+        if err != nil {
+                return NewHttpError(500, fmt.Sprintf("Could not open target file for copy: %s", safePath))
         }
 
-        // Rename the temp file to a the real file. This is done "atomically",
-        // so that even if something goes weird, we'll either have an old or new version.
-        if err := os.Rename(tempPath, safePath); err != nil {
-                return NewHttpError(500, "Unable to replace old version: " + err.Error())
-        }
+        io.Copy(fout, f)
+        f.Close()
+        fout.Close()
+
+        os.Remove(tempPath)
+
+//         if err := os.Chmod(tempPath, mode); err != nil {
+//                 return NewHttpError(500, "unable to chmod tmpfile: " + err.Error())
+//         }
+
+//         // Rename the temp file to a the real file. This is done "atomically",
+//         // so that even if something goes weird, we'll either have an old or new version.
+//         if err := os.Rename(tempPath, safePath); err != nil {
+//                 return NewHttpError(500, "Unable to replace old version: " + err.Error())
+//         }
 
 	stat, _ = os.Stat(safePath)
 	responseChannel <- statusCodeBuffer(200)
@@ -419,7 +437,6 @@ func ListenForSignals() {
                 syscall.SIGQUIT)
         go func() {
                 _ = <-sigs
-                fmt.Println("Received signal, exiting.")
                 os.Exit(0)
         }()
 }
@@ -470,6 +487,10 @@ func RunClient(url string, id string, userKey string) {
 	err = multiplexer.Multiplex()
 	if err != nil {
 		// TODO do this in a cleaner way (reconnect, that is)
-		RunClient(url, id, userKey)
+		if err.Error() == "no-client" {
+		        fmt.Printf("ERROR: Your Zed editor is not currently connected to zedrem server %s.\nBe sure Zed is running and the project picker is open.\n", url)
+		} else {
+		        RunClient(url, id, userKey)
+		}
 	}
 }
