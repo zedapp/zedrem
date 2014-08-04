@@ -3,6 +3,7 @@ package main
 import (
         "fmt"
         "encoding/json"
+        "errors"
         "code.google.com/p/go.net/websocket"
 )
 
@@ -12,7 +13,6 @@ var editorClients map[string]*EditorClient = make(map[string]*EditorClient)
 type EditorClient struct {
         id string
         writeChannels []chan string
-        pendingEditIds []string
 }
 
 func GetEditorClientChannel(uuid string) *EditorClient {
@@ -21,7 +21,6 @@ func GetEditorClientChannel(uuid string) *EditorClient {
                 client = &EditorClient {
                         id: uuid,
                         writeChannels: make([]chan string, 0),
-                        pendingEditIds: make([]string, 0),
                 }
                 editorClients[uuid] = client
         }
@@ -31,24 +30,17 @@ func GetEditorClientChannel(uuid string) *EditorClient {
 func(client *EditorClient) NewChannel() chan string {
         ch := make(chan string, 20)
         client.writeChannels = append(client.writeChannels, ch)
-        // Were any urls pending? Flush them out
-        if len(client.pendingEditIds) > 0 {
-                for _, editId := range client.pendingEditIds {
-                        ch <- editId
-                }
-                client.pendingEditIds = make([]string, 0)
-        }
         return ch
 }
 
-func (client *EditorClient) Send(editId string) {
+func (client *EditorClient) Send(editId string) error {
         if len(client.writeChannels) == 0 {
-                client.pendingEditIds = append(client.pendingEditIds, editId)
-                return
+                return errors.New("no-client")
         }
         for _, ch := range client.writeChannels {
                 ch <- editId
         }
+        return nil
 }
 
 func (client *EditorClient) DisconnectChannel(ch chan string) {
@@ -64,6 +56,8 @@ func (client *EditorClient) DisconnectChannel(ch chan string) {
                 delete(editorClients, client.id)
         }
 }
+
+var pongBuff []byte = []byte(`{"type": "pong"}`)
 
 
 func editorSocketServer(ws *websocket.Conn) {
@@ -97,11 +91,16 @@ func editorSocketServer(ws *websocket.Conn) {
 
         go func() {
                 for {
-                        buf := make([]byte, 100)
-                        _, err := ws.Read(buf)
+                        buf := make([]byte, 1024)
+                        n, err := ws.Read(buf)
                         if err != nil {
                                 closeSocket()
                                 return
+                        }
+                        var message EditSocketMessage
+                        err = json.Unmarshal(buf[:n], &message)
+                        if message.MessageType == "ping" {
+                                ws.Write(pongBuff)
                         }
                 }
 
@@ -112,7 +111,12 @@ func editorSocketServer(ws *websocket.Conn) {
                 if !request_ok {
                         return
                 }
-                _, err := ws.Write([]byte(url))
+                messageBuf, err := json.Marshal(EditSocketMessage{"open", url})
+                if err != nil {
+                        fmt.Println("Couldn't serialize URL")
+                        continue
+                }
+                _, err = ws.Write(messageBuf)
                 if err != nil {
                         fmt.Println("Got error", err)
                         return

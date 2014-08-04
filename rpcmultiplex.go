@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"errors"
 )
 
 type Request struct {
@@ -72,6 +73,9 @@ func (m *RPCMultiplexer) Multiplex() error {
 		requestId, buffer, err := ReadFrame(m.rw)
 		if err != nil {
 			return err
+		}
+		if requestId == 0 {
+		        return errors.New(string(buffer))
 		}
 		req := m.OutstandingRequests[requestId]
 		if req == nil {

@@ -11,6 +11,11 @@ type HelloMessage struct {
 	UserKey string
 }
 
+type EditSocketMessage struct {
+        MessageType string `json:"type"`
+        Url string `json:"url"`
+}
+
 const DELIMITER = "11~~~~~!!END!!~~~~~11"
 var DELIMITERBUFFER = []byte(DELIMITER)
 const BUFFER_SIZE = 4096

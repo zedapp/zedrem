@@ -222,7 +222,11 @@ func socketServer(ws *websocket.Conn) {
 	}()
 
 	if hello.UserKey != "" {
-                GetEditorClientChannel(hello.UserKey).Send(hello.UUID)
+                err := GetEditorClientChannel(hello.UserKey).Send(hello.UUID)
+                if err != nil {
+                        err = WriteFrame(ws, 0, []byte(err.Error()))
+                        return
+                }
         }
 
 
