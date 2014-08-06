@@ -289,7 +289,7 @@ func handlePut(path string, requestChannel chan []byte, responseChannel chan []b
         if err != nil {
                 return NewHttpError(500, fmt.Sprintf("Could not read temporary file for copy: %s", tempPath))
         }
-	fout, err := os.OpenFile(safePath, os.O_WRONLY | os.O_TRUNC, mode)
+	fout, err := os.OpenFile(safePath, os.O_WRONLY | os.O_TRUNC | os.O_CREATE, mode)
         if err != nil {
                 return NewHttpError(500, fmt.Sprintf("Could not open target file for copy: %s", safePath))
         }
