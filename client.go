@@ -324,8 +324,8 @@ func handleDelete(path string, requestChannel chan []byte, responseChannel chan 
 	waitForLock(path)
 
 	safePath, err := safePath(rootPath, path)
-	dropUntilDelimiter(requestChannel)
 	if err != nil {
+	dropUntilDelimiter(requestChannel)
 		return err.(HttpError)
 	}
 	_, err = os.Stat(safePath)
