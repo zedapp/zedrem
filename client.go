@@ -254,7 +254,7 @@ func handlePut(path string, requestChannel chan []byte, responseChannel chan []b
 		return err.(HttpError)
 	}
 	dir := filepath.Dir(safePath)
-	os.MkdirAll(dir, 0700)
+	os.MkdirAll(dir, 0777)
 
 	// To avoid corrupted files, we'll write to a temp path first
 	tempPath := dir + "/.zedtmp." + uuid.New()
@@ -278,7 +278,7 @@ func handlePut(path string, requestChannel chan []byte, responseChannel chan []b
 	f.Close()
 
         // Get existing file permissions
-	var mode os.FileMode = 0600
+	var mode os.FileMode = 0666
 	stat, err := os.Stat(safePath)
 	if err == nil {
 		mode = stat.Mode()
