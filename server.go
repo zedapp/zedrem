@@ -26,8 +26,8 @@ type WebFSHandler struct {
 
 func quietPanicRecover() {
 	if r := recover(); r != nil {
-        fmt.Println("Recovered from panic", r)
-    }
+                fmt.Println("Recovered from panic", r)
+        }
 }
 
 func (self *WebFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +128,7 @@ func NewClient(uuid string) *Client {
 type ClientRequest struct {
 	requestId byte
 	// Reusing channel for reading and writing
-	ch chan[] byte
+	ch chan []byte
 }
 
 func (cr *ClientRequest) close() {
