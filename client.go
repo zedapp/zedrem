@@ -72,12 +72,13 @@ func safePath(rootPath string, path string) (string, error) {
 	return absPath, nil
 }
 
-// TODO clean this up
-var rootPath string
-
 var writeLock = make(map[string]chan bool)
 
-func handleRequest(requestChannel chan []byte, responseChannel chan []byte, closeChannel chan bool) {
+type RootedRPCHandler struct {
+        rootPath string
+}
+
+func (self *RootedRPCHandler) handleRequest(requestChannel chan []byte, responseChannel chan []byte, closeChannel chan bool) {
 	commandBuffer, ok := <-requestChannel
 	if !ok {
 		return
@@ -98,15 +99,15 @@ func handleRequest(requestChannel chan []byte, responseChannel chan []byte, clos
 	}
 	switch method {
 	case "GET":
-		err = handleGet(path, requestChannel, responseChannel)
+		err = self.handleGet(path, requestChannel, responseChannel)
 	case "HEAD":
-		err = handleHead(path, requestChannel, responseChannel)
+		err = self.handleHead(path, requestChannel, responseChannel)
 	case "PUT":
-		err = handlePut(path, requestChannel, responseChannel)
+		err = self.handlePut(path, requestChannel, responseChannel)
 	case "DELETE":
-		err = handleDelete(path, requestChannel, responseChannel)
+		err = self.handleDelete(path, requestChannel, responseChannel)
 	case "POST":
-		err = handlePost(path, requestChannel, responseChannel)
+		err = self.handlePost(path, requestChannel, responseChannel)
 	}
 	if err != nil {
 		sendError(responseChannel, err, commandParts[0] != "HEAD")
@@ -157,11 +158,11 @@ func waitForLock(path string) {
 	}
 }
 
-func handleGet(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
+func (self *RootedRPCHandler) handleGet(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
 	waitForLock(path)
 
 	dropUntilDelimiter(requestChannel)
-	safePath, err := safePath(rootPath, path)
+	safePath, err := safePath(self.rootPath, path)
 	if err != nil {
 		return err.(HttpError)
 	}
@@ -209,10 +210,10 @@ func handleGet(path string, requestChannel chan []byte, responseChannel chan []b
 	return nil
 }
 
-func handleHead(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
+func (self *RootedRPCHandler) handleHead(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
 	waitForLock(path)
 
-	safePath, err := safePath(rootPath, path)
+	safePath, err := safePath(self.rootPath, path)
 	dropUntilDelimiter(requestChannel)
 	if err != nil {
 		return err.(HttpError)
@@ -234,7 +235,7 @@ func handleHead(path string, requestChannel chan []byte, responseChannel chan []
 	return nil
 }
 
-func handlePut(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
+func (self *RootedRPCHandler) handlePut(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
 	if writeLock[path] != nil {
 		// Already writing
 		dropUntilDelimiter(requestChannel)
@@ -248,7 +249,7 @@ func handlePut(path string, requestChannel chan []byte, responseChannel chan []b
 		writeLock[path] = nil
 	}()
 
-	safePath, err := safePath(rootPath, path)
+	safePath, err := safePath(self.rootPath, path)
 	if err != nil {
 		dropUntilDelimiter(requestChannel)
 		return err.(HttpError)
@@ -320,10 +321,10 @@ func handlePut(path string, requestChannel chan []byte, responseChannel chan []b
 	return nil
 }
 
-func handleDelete(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
+func (self *RootedRPCHandler) handleDelete(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
 	waitForLock(path)
 
-	safePath, err := safePath(rootPath, path)
+	safePath, err := safePath(self.rootPath, path)
 	if err != nil {
 	dropUntilDelimiter(requestChannel)
 		return err.(HttpError)
@@ -368,8 +369,8 @@ func readWholeBody(requestChannel chan []byte) []byte {
 	return byteBuffer.Bytes()
 }
 
-func handlePost(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
-	safePath, err := safePath(rootPath, path)
+func (self *RootedRPCHandler) handlePost(path string, requestChannel chan []byte, responseChannel chan []byte) HttpError {
+	safePath, err := safePath(self.rootPath, path)
 	body := string(readWholeBody(requestChannel))
 	if err != nil {
 		return err.(HttpError)
@@ -406,12 +407,10 @@ func handlePost(path string, requestChannel chan []byte, responseChannel chan []
 }
 
 // Side-effect: writes to rootPath
-func ParseClientFlags(args []string) (string, string) {
+func ParseClientFlags(args []string) (url string, userKey string, rootPath string) {
 	config := ParseConfig()
 
 	flagSet := flag.NewFlagSet("zedrem", flag.ExitOnError)
-	var url string
-	var userKey string
 	var stats bool
 	flagSet.StringVar(&url, "u", config.Client.Url, "URL to connect to")
 	flagSet.StringVar(&userKey, "key", config.Client.UserKey, "User key to use")
@@ -421,11 +420,11 @@ func ParseClientFlags(args []string) (string, string) {
 		go PrintStats()
 	}
 	if flagSet.NArg() == 0 {
-		rootPath = "."
+        	rootPath = "."
 	} else {
 		rootPath = args[len(args)-1]
 	}
-	return url, userKey
+	return
 }
 
 func ListenForSignals() {
@@ -441,7 +440,7 @@ func ListenForSignals() {
         }()
 }
 
-func RunClient(url string, id string, userKey string) {
+func RunClient(url string, id string, userKey string, rootPath string) {
 	rootPath, _ = filepath.Abs(rootPath)
         ListenForSignals()
 	socketUrl := fmt.Sprintf("%s/clientsocket", url)
@@ -475,7 +474,7 @@ func RunClient(url string, id string, userKey string) {
 	}
 	connectUrl := strings.Replace(url, "ws://", "http://", 1)
 	connectUrl = strings.Replace(connectUrl, "wss://", "https://", 1)
-	multiplexer := NewRPCMultiplexer(ws, handleRequest)
+	multiplexer := NewRPCMultiplexer(ws, &RootedRPCHandler{rootPath})
 
         if userKey == "" {
         	fmt.Print("In the Zed application copy and paste following URL to edit:\n\n")
@@ -490,7 +489,7 @@ func RunClient(url string, id string, userKey string) {
 		if err.Error() == "no-client" {
 		        fmt.Printf("ERROR: Your Zed editor is not currently connected to zedrem server %s.\nBe sure Zed is running and the project picker is open.\n", url)
 		} else {
-		        RunClient(url, id, userKey)
+		        RunClient(url, id, userKey, rootPath)
 		}
 	}
 }

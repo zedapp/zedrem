@@ -12,7 +12,9 @@ type Request struct {
 	closeChannel chan bool
 }
 
-type RPCHandler func(requestChannel chan []byte, responseChannel chan []byte, closeChannel chan bool)
+type RPCHandler interface {
+        handleRequest(requestChannel chan []byte, responseChannel chan []byte, closeChannel chan bool)
+}
 
 type RPCMultiplexer struct {
 	rw io.ReadWriter
@@ -87,9 +89,9 @@ func (m *RPCMultiplexer) Multiplex() error {
 			m.OutstandingRequests[requestId] = req
 			go m.responseListener(requestId, req.responseChannel)
 			go m.closeListener(requestId, req.closeChannel)
-			go m.handler(req.requestChannel, req.responseChannel, req.closeChannel)
+			go m.handler.handleRequest(req.requestChannel, req.responseChannel, req.closeChannel)
 		}
 		req.requestChannel <- buffer
 	}
-  return nil
+        return nil
 }
