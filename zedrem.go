@@ -30,7 +30,7 @@ func main() {
 Usage: zedrem [-u url] [-key userKey] <dir>
        Launches a Zed client and attaches to a Zed server exposing
        directory <dir> (or current directory if omitted). Default URL is
-       wss://renite.zedapp.org:443
+       wss://remote.zedapp.org:443
        If a -key flag is passed that matches the userKey set in your Zed
        configuration, a window will open automatically.
 
