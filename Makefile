@@ -22,6 +22,6 @@ golang-crosscompile:
 	git clone https://github.com/davecheney/golang-crosscompile.git
 
 deps:
-	go get code.google.com/p/go.net/websocket
-	go get code.google.com/p/go-uuid/uuid
-	go get code.google.com/p/gcfg
+	go get golang.org/x/net/websocket
+	go get github.com/pborman/uuid
+	go get gopkg.in/gcfg.v1

@@ -4,7 +4,7 @@ import (
         "fmt"
         "encoding/json"
         "errors"
-        "code.google.com/p/go.net/websocket"
+        "golang.org/x/net/websocket"
 )
 
 
