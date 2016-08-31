@@ -2,7 +2,7 @@ package main
 
 import (
 	"os"
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 	"strings"
 	"fmt"
 )

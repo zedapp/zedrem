@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
-	"code.google.com/p/go.net/websocket"
+	"golang.org/x/net/websocket"
 	"crypto/tls"
 	"encoding/json"
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 	"flag"
 	"fmt"
 	"io"
